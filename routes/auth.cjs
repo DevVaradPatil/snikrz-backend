@@ -22,7 +22,22 @@ router.post('/register', async (req, res) => {
     const user = new User({ username, password: hashedPassword });
     await user.save();
 
-    res.status(201).json({ message: 'User registered successfully' });
+    // Find the user
+    const user2 = await User.findOne({ username });
+    if (!user2) {
+      return res.status(401).json({ message: 'Authentication failed' });
+    }
+
+    // Compare the provided password with the stored hash
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Authentication failed' });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
+
+    res.status(200).json({ token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
